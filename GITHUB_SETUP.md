@@ -1,6 +1,6 @@
-# 🚀 Publicação no GitHub - bot-pedreira
+# 🚀 Publicação no GitHub - bot-whatsapp-atendimento
 
-Este documento explica como publicar o projeto no GitHub com o nome **bot-pedreira**.
+Este documento explica como publicar o projeto no GitHub no repositório **bot-whatsapp-atendimento**.
 
 ## 📋 Pré-requisitos
 
@@ -10,18 +10,15 @@ Este documento explica como publicar o projeto no GitHub com o nome **bot-pedrei
 
 ## 🔧 Passos para Publicação
 
-### 1. Criar Repositório no GitHub
+### 1. Verificar Repositório no GitHub
 
-1. Acesse https://github.com/new
-2. Nome do repositório: `bot-pedreira`
-3. Descrição: `Sistema automatizado de atendimento técnico via WhatsApp`
-4. Deixe como **Public**
-5. **Não** inicialize com README
-6. Clique em **"Create repository"**
+O repositório já existe em: https://github.com/Betaberg/bot-whatsapp-atendimento
+
+Verifique se você tem acesso de escrita a este repositório.
 
 ### 2. Configurar Remote Origin
 
-O projeto já está configurado para usar o nome `bot-pedreira`. Verifique com:
+O projeto já está configurado para usar o repositório correto. Verifique com:
 
 ```bash
 git remote -v
@@ -29,13 +26,13 @@ git remote -v
 
 Deve mostrar:
 ```
-origin https://github.com/SEU_USUARIO/bot-pedreira.git (fetch)
-origin https://github.com/SEU_USUARIO/bot-pedreira.git (push)
+origin https://github.com/Betaberg/bot-whatsapp-atendimento.git (fetch)
+origin https://github.com/Betaberg/bot-whatsapp-atendimento.git (push)
 ```
 
 Se não estiver correto, configure com:
 ```bash
-git remote set-url origin https://github.com/SEU_USUARIO/bot-pedreira.git
+git remote set-url origin https://github.com/Betaberg/bot-whatsapp-atendimento.git
 ```
 
 ### 3. Fazer Push para GitHub
