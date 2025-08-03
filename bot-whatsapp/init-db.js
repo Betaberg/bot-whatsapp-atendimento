@@ -101,6 +101,87 @@ function initializeTables() {
       console.error('❌ Erro ao criar tabela configuracoes:', err);
     } else {
       console.log('✅ Tabela configuracoes criada');
+    }
+  });
+
+  // Tabela de Usuários de Sistema (para login web)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS system_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      telefone TEXT,
+      role TEXT DEFAULT 'admin',
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ Erro ao criar tabela system_users:', err);
+    } else {
+      console.log('✅ Tabela system_users criada');
+    }
+  });
+
+  // Tabela de Configurações do Sistema
+  db.run(`
+    CREATE TABLE IF NOT EXISTS system_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      config_key TEXT UNIQUE NOT NULL,
+      config_value TEXT,
+      description TEXT,
+      updated_by TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ Erro ao criar tabela system_config:', err);
+    } else {
+      console.log('✅ Tabela system_config criada');
+    }
+  });
+
+  // Tabela de Backups
+  db.run(`
+    CREATE TABLE IF NOT EXISTS backups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      backup_name TEXT NOT NULL,
+      backup_path TEXT NOT NULL,
+      backup_size INTEGER,
+      backup_type TEXT DEFAULT 'auto',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'completed'
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ Erro ao criar tabela backups:', err);
+    } else {
+      console.log('✅ Tabela backups criada');
+    }
+  });
+
+  // Tabela de Solicitações de Peças
+  db.run(`
+    CREATE TABLE IF NOT EXISTS solicitacoes_pecas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ordem_id INTEGER NOT NULL,
+      tecnico_telefone TEXT NOT NULL,
+      tecnico_nome TEXT,
+      pecas_solicitadas TEXT NOT NULL,
+      observacoes TEXT,
+      status TEXT DEFAULT 'pendente',
+      almoxarifado_responsavel TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atendida_at DATETIME,
+      FOREIGN KEY (ordem_id) REFERENCES ordens_servico (id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ Erro ao criar tabela solicitacoes_pecas:', err);
+    } else {
+      console.log('✅ Tabela solicitacoes_pecas criada');
       insertSampleData();
     }
   });
@@ -265,12 +346,51 @@ function insertSampleData() {
     });
   });
 
+  // Inserir configurações do sistema
+  const systemConfigs = [
+    ['grupo_tecnico', 'H6Mb8FQAnhaJhY5RdyIKjP@g.us', 'ID do grupo técnico no WhatsApp'],
+    ['max_memory', '512MB', 'Limite máximo de uso de memória'],
+    ['storage_limit', '2GB', 'Limite de armazenamento'],
+    ['backup_path', './backups', 'Caminho para backups'],
+    ['export_path', './exports', 'Caminho para exportações'],
+    ['backup_interval', '24', 'Intervalo de backup em horas'],
+    ['auto_backup', 'true', 'Backup automático habilitado'],
+    ['cleanup_days', '365', 'Dias para manter histórico']
+  ];
+
+  systemConfigs.forEach(([key, value, description]) => {
+    db.run(`
+      INSERT OR IGNORE INTO system_config (config_key, config_value, description, updated_by)
+      VALUES (?, ?, ?, 'init-script')
+    `, [key, value, description], (err) => {
+      if (err) {
+        console.error('❌ Erro ao inserir configuração do sistema:', err);
+      }
+    });
+  });
+
+  // Criar usuário root padrão para sistema web
+  const defaultPassword = 'admin847523'; // Senha padrão
+  const rootUser = '5569981170027'; // Número root padrão
+  
+  db.run(`
+    INSERT OR IGNORE INTO system_users (username, password, telefone, role, created_by)
+    VALUES (?, ?, ?, 'root', 'init-script')
+  `, ['root', defaultPassword, rootUser], (err) => {
+    if (err) {
+      console.error('❌ Erro ao inserir usuário root do sistema:', err);
+    } else {
+      console.log('✅ Usuário root do sistema criado');
+    }
+  });
+
   setTimeout(() => {
     console.log('\n🎉 Banco de dados inicializado com sucesso!');
     console.log('📊 Dados de exemplo inseridos:');
     console.log('   • 6 Ordens de Serviço');
     console.log('   • 5 Usuários (2 root, 2 técnicos, 1 admin)');
     console.log('   • Configurações padrão');
+    console.log('   • Usuário root do sistema');
     console.log('\n🌐 Agora você pode acessar o painel em: http://localhost:8000');
     
     db.close((err) => {
@@ -283,3 +403,4 @@ function insertSampleData() {
     });
   }, 1000);
 }
+

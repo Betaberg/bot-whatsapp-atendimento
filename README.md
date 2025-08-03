@@ -1,350 +1,384 @@
-# 🤖 Bot de Atendimento WhatsApp - Sistema Completo
+# 🤖 Bot WhatsApp com IA Local (Ollama) + Sistema de Peças
 
-Sistema automatizado de atendimento técnico integrado ao WhatsApp com painel administrativo web para gerenciamento de Ordens de Serviço (OS).
+Sistema completo de atendimento técnico via WhatsApp com **IA local usando Ollama**, integração ao grupo técnico, sistema de solicitação de peças e interface web para gerenciamento.
 
-## 📋 Funcionalidades Implementadas
+## 🚀 Funcionalidades Principais
 
-### 🔧 Bot WhatsApp
-- ✅ Conexão automática via Baileys
-- ✅ Recebimento e processamento de comandos
-- ✅ Criação automática de OS
-- ✅ Sistema de hierarquia (Root, Admin, Técnico, Usuário)
-- ✅ Comandos completos para todos os níveis
-- ✅ Integração com OpenAI (opcional)
-- ✅ Sistema de logs avançado
-- ✅ Banco de dados SQLite
-- ✅ Limpeza automática de dados antigos
+### 1. **IA Local com Ollama** ⭐ **NOVO**
+- **Análise inteligente** de mensagens dos usuários
+- **Primeira interação personalizada** - não cria OS automaticamente
+- **Classificação automática** de problemas técnicos
+- **Análise de prioridade** e categorização
+- **Privacidade total** - dados não saem do servidor
 
-### 🌐 Painel Administrativo Web
-- ✅ Dashboard com estatísticas em tempo real
-- ✅ Visualização de todas as OS
-- ✅ Filtros por status e busca
-- ✅ Interface moderna e responsiva
-- ✅ API REST completa
-- ✅ Atualização de status das OS
+### 2. **Integração com Grupo Técnico**
+- Bot envia notificações de novas OS para grupo específico do WhatsApp
+- Comandos funcionam dentro do grupo técnico
+- ID do grupo configurável via interface web
 
-## 🚀 Instalação e Configuração
+### 3. **Sistema de Solicitação de Peças**
+- Comando `!listpeças [id_os]` para técnicos solicitarem peças
+- Workflow completo: solicitação → separação → disponibilização
+- Notificações automáticas para técnicos e almoxarifado
+- Interface web para gerenciamento pelo almoxarifado
 
-### 1. Pré-requisitos
-- Node.js 16+ instalado
-- WhatsApp instalado no celular
-- Chave da OpenAI (opcional)
+### 4. **Interface Web Completa**
+- **Gerenciamento de OS**: Visualizar, atualizar status, histórico
+- **Gerenciamento de Peças**: Interface para almoxarifado
+- **Configurações do Sistema**: Painel administrativo
+- **Autenticação**: Sistema de login protegido
 
-### 2. Instalação das Dependências
+### 5. **Sistema de Backup e Administração**
+- Backup automático e manual do banco de dados
+- Comandos administrativos avançados
+- Estatísticas e gráficos do sistema
+- Gerenciamento de usuários via interface web
 
+## 📋 Pré-requisitos
+
+- Node.js 18+ 
+- NPM ou Yarn
+- **Ollama instalado** (para IA local)
+- WhatsApp Business ou pessoal para o bot
+- Acesso ao grupo técnico do WhatsApp
+
+## 🛠️ Instalação
+
+### 1. **Instalar Ollama** ⭐ **NOVO**
 ```bash
-# Instalar dependências do bot
+# Linux/Mac
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Windows: Baixar do site oficial
+# https://ollama.ai/
+```
+
+**Baixar modelo recomendado:**
+```bash
+ollama pull llama3.2:3b
+```
+
+**Iniciar Ollama:**
+```bash
+ollama serve
+```
+
+### 2. **Clonar o Repositório**
+```bash
+git clone <repository-url>
+cd bot-whatsapp-atendimento
+```
+
+### 3. **Instalar Dependências**
+
+**Bot WhatsApp:**
+```bash
 cd bot-whatsapp
 npm install
+```
 
-# Instalar dependências do painel web (na raiz)
+**Interface Web:**
+```bash
 cd ..
-npm install sqlite3
+npm install
 ```
 
-### 3. Configuração do Bot
+### 4. **Configurar Variáveis de Ambiente**
 
-```bash
-# Inicializar banco de dados com dados de exemplo
-cd bot-whatsapp
-node init-db.js
-```
-
-### 4. Configurar Variáveis de Ambiente
-
-Edite o arquivo `bot-whatsapp/.env`:
-
+Criar arquivo `.env` na raiz do projeto:
 ```env
-# Configurações do Bot WhatsApp
-OPENAI_API_KEY=sua_chave_openai_aqui
+# Bot Configuration
+BOT_NUMBER=5569981248816
+ROOT_NUMBERS=5569981170027,5569884268042
 
-# Números de telefone
-BOT_NUMBER=69981248816
-ROOT_NUMBERS=69981170027,6884268042
+# Database
+DB_PATH=./bot-whatsapp/db/atendimento.db
 
-# Configurações do banco de dados
-DB_PATH=./db/atendimento.db
+# Ollama Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2:3b
 
-# Configurações gerais
-NODE_ENV=development
+# Logging
 LOG_LEVEL=info
-
-# Mensagens padrão
-MENSAGEM_SAUDACAO=Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?
-MENSAGEM_FINAL=Atendimento finalizado. Obrigado por utilizar nossos serviços!
 ```
 
-## 🎯 Como Usar
+### 5. **Iniciar os Serviços**
 
-### 1. Iniciar o Painel Web
-
+**Terminal 1 - Bot WhatsApp:**
 ```bash
-# Na raiz do projeto
-npm run dev
-```
-
-Acesse: http://localhost:8000
-
-### 2. Iniciar o Bot WhatsApp
-
-```bash
-# Em outro terminal
 cd bot-whatsapp
 npm start
 ```
 
-1. Escaneie o QR Code que aparecerá no terminal
-2. Aguarde a confirmação de conexão
-3. O bot estará pronto para receber mensagens!
+**Terminal 2 - Interface Web:**
+```bash
+npm run dev
+```
 
-## 📱 Comandos do WhatsApp
+**Terminal 3 - Ollama (se não estiver rodando):**
+```bash
+ollama serve
+```
 
-### 👤 Comandos de Usuário
+## 🎯 Como Usar
 
-| Comando | Descrição | Exemplo |
-|---------|-----------|---------|
-| `!ajuda` | Lista todos os comandos | `!ajuda` |
-| `!status [id]` | Consulta status da OS | `!status 123` |
-| `!cancelar [id]` | Cancela uma OS | `!cancelar 123` |
-| `!dados` | Inicia coleta de dados detalhados | `!dados` |
+### **Para Usuários Finais:** ⭐ **ATUALIZADO**
+1. **Primeira Mensagem**: Recebe boas-vindas personalizadas da IA
+2. **Abrir Chamado**: Descrever problema técnico (IA analisa automaticamente)
+3. **Consultar Status**: `!status [id]`
+4. **Cancelar OS**: `!cancelar [id]`
+5. **Adicionar Dados**: `!dados`
 
-### 🔧 Comandos de Técnico
+### **Para Técnicos:**
+1. **Ver OS Abertas**: `!list`
+2. **Assumir OS**: `!atendendo [id]`
+3. **Solicitar Peças**: `!listpeças [id]`
+4. **Finalizar OS**: `!finalizado [id]`
+5. **Marcar Prioridade**: `!prioridade [id]`
 
-| Comando | Descrição | Exemplo |
-|---------|-----------|---------|
-| `!menu` | Menu de comandos técnicos | `!menu` |
-| `!atendendo [id]` | Assume uma OS | `!atendendo 123` |
-| `!prioridade [id]` | Marca como prioritário | `!prioridade 123` |
-| `!setor [id]=[setor]` | Altera setor da OS | `!setor 123=Financeiro` |
-| `!mensagem [id]=[texto]` | Envia mensagem ao usuário | `!mensagem 123=Verificando problema` |
-| `!list` | Lista OS abertas | `!list` |
-| `!finalizado [id]` | Finaliza atendimento | `!finalizado 123` |
-| `!adm` | Chama um administrador | `!adm` |
+### **Para Almoxarifado:**
+1. **Ver Solicitações**: `!pecas`
+2. **Atender Solicitação**: `!atender [id]`
+3. **Acessar Interface Web**: `/parts`
 
-### 👑 Comandos Administrativos
+### **Para Administradores:**
+1. **Promover Usuários**: `!tecnico=[telefone]`, `!almoxarifado=[telefone]`
+2. **Ver Estatísticas**: `!grafico`
+3. **Criar Backup**: `!backup`
+4. **Configurar Sistema**: Interface web `/config`
 
-| Comando | Descrição | Exemplo |
-|---------|-----------|---------|
-| `!config` | Menu de configurações | `!config` |
-| `!listtc` | Lista técnicos | `!listtc` |
-| `!listadm` | Lista administradores | `!listadm` |
-| `!menss=[texto]` | Altera saudação | `!menss=Olá! Como posso ajudar?` |
-| `!msfinal=[texto]` | Altera mensagem final | `!msfinal=Obrigado pelo contato!` |
-| `!ping` | Testa sistema | `!ping` |
-| `!tecnico=[numero]` | Promove a técnico | `!tecnico=5511999999999` |
-| `!adm=[numero]` | Promove a admin | `!adm=5511999999999` |
-| `!historico` | Visualiza histórico | `!historico` |
+## 📱 Exemplo de Uso ⭐ **ATUALIZADO**
 
-## 🔄 Fluxo de Atendimento
+### Fluxo Completo com IA:
 
-### 1. Abertura Simples de Chamado
+1. **Primeira interação do usuário:**
+```
+Usuário: "oi"
+Bot: 👋 Olá! Sou seu assistente técnico de TI.
+
+🔧 Para abrir um chamado, descreva seu problema técnico
+📋 Use !ajuda para ver todos os comandos disponíveis
+💬 Estou aqui para ajudar com questões de TI!
+```
+
+2. **Usuário reporta problema:**
 ```
 Usuário: "Minha impressora não está funcionando"
 Bot: ✅ CHAMADO CRIADO COM SUCESSO
-     🎫 OS #123
-     📝 Problema: Minha impressora não está funcionando
-     📅 Criado em: 30/01/2024 14:30:25
+
+🎫 OS #123
+📝 Problema: Minha impressora não está funcionando
+📅 Criado em: 15/12/2024 14:30
+
+🤖 Análise Automática:
+📂 Categoria: Impressora
+⚡ Prioridade: Normal
+🔍 Análise: Problema comum de conectividade com impressora
+
+💡 Próximos passos:
+• Use !dados para adicionar mais informações
+• Use !status 123 para consultar o andamento
+• Nossa equipe técnica foi notificada
 ```
 
-### 2. Abertura Detalhada com !dados
+3. **Notificação no grupo técnico:**
 ```
-Usuário: !dados
-Bot: 📝 COLETA DE DADOS PARA CHAMADO
-     1️⃣ Seu nome completo:
+🆕 NOVA OS CRIADA
 
-Usuário: João Silva
-Bot: 2️⃣ Local do atendimento (ex: Recepção, Sala 101):
+🎫 OS #123
+👤 Usuário: João Silva
+📞 Telefone: 5511999999999
+📝 Problema: Minha impressora não está funcionando
 
-Usuário: Recepção
-Bot: 3️⃣ Equipamento com problema:
+🤖 Análise IA:
+📂 Impressora | ⚡ Normal
+🔍 Problema comum de conectividade com impressora
 
-Usuário: Impressora HP LaserJet
-Bot: 4️⃣ ID do AnyDesk (se aplicável, ou digite "não"):
-
-Usuário: 123456789
-Bot: 5️⃣ Descreva detalhadamente o problema:
-
-Usuário: Impressora não imprime e papel fica atolando
-Bot: ✅ CHAMADO CRIADO COM SUCESSO
-     🎫 OS #124
-     👤 Usuário: João Silva
-     📍 Local: Recepção
-     💻 Equipamento: Impressora HP LaserJet
-     🖥️ AnyDesk: 123456789
-     📝 Problema: Impressora não imprime e papel fica atolando
+📅 Criado em: 15/12/2024 14:30
 ```
 
-### 3. Atendimento Técnico
+4. **Técnico assume o atendimento:**
 ```
-Técnico: !list
-Bot: 📋 ORDENS DE SERVIÇO ABERTAS
-     🔴 OS #124
-     👤 João Silva
-     📍 Recepção
-     💻 Impressora HP LaserJet
-     📅 30/01/2024 14:30:25
-
-Técnico: !atendendo 124
-Bot: ✅ Você assumiu a OS #124. Status alterado para EM ANDAMENTO.
-
-Técnico: !mensagem 124=Estou indo até a recepção verificar a impressora
-Bot: ✅ Mensagem enviada para o usuário.
-
-Técnico: !finalizado 124
-Bot: ✅ OS #124 finalizada com sucesso!
+Técnico: "!atendendo 123"
+Bot: ✅ Você assumiu a OS #123. Status: EM ANDAMENTO
 ```
 
-## 🌐 Painel Administrativo
-
-### Dashboard
-- **Estatísticas em tempo real**: Total, Abertas, Em Andamento, Finalizadas, Alta Prioridade
-- **Gráficos visuais** com cores intuitivas
-- **Atualização automática** dos dados
-
-### Funcionalidades
-- **Filtros avançados**: Por status, busca por nome/problema/ID
-- **Tabela completa**: Todas as informações das OS
-- **Ações rápidas**: Iniciar, Finalizar OS diretamente do painel
-- **Interface responsiva**: Funciona em desktop, tablet e mobile
-
-### API Endpoints
-- `GET /api/orders` - Lista ordens de serviço
-- `PUT /api/orders` - Atualiza status das ordens
-
-## 📊 Dados de Exemplo
-
-O sistema vem com 6 ordens de serviço de exemplo:
-
-1. **Ana Oliveira** - Impressora HP (Recepção) - Em Andamento
-2. **Carlos Mendes** - Computador Dell (Sala 201) - Em Andamento  
-3. **Fernanda Lima** - Monitor Samsung (Financeiro) - Aberta
-4. **Roberto Alves** - Notebook Lenovo (RH) - Finalizada
-5. **Lucia Ferreira** - Telefone IP (Vendas) - Finalizada
-6. **Marcos Silva** - Scanner Epson (Almoxarifado) - Cancelada
-
-## 🗂️ Estrutura do Projeto
-
+5. **Técnico solicita peças:**
 ```
-/
-├── bot-whatsapp/              # Bot WhatsApp
-│   ├── bot.js                 # Arquivo principal do bot
-│   ├── start.js               # Script de inicialização
-│   ├── init-db.js             # Inicialização do banco
-│   ├── package.json           # Dependências do bot
-│   ├── .env                   # Configurações
-│   ├── config/
-│   │   └── config.js          # Configurações gerais
-│   ├── db/
-│   │   ├── database.js        # Gerenciador do banco
-│   │   └── atendimento.db     # Banco SQLite
-│   ├── handlers/
-│   │   └── commands.js        # Processador de comandos
-│   ├── utils/
-│   │   └── logger.js          # Sistema de logs
-│   ├── logs/                  # Logs do sistema
-│   ├── auth_info_baileys/     # Sessão WhatsApp
-│   └── docs/
-│       └── README.md          # Documentação detalhada
-├── src/                       # Painel Web Next.js
-│   ├── app/
-│   │   ├── page.tsx           # Página principal
-│   │   ├── layout.tsx         # Layout da aplicação
-│   │   └── api/
-│   │       └── orders/
-│   │           └── route.ts   # API das ordens
-│   └── components/ui/         # Componentes UI
-├── package.json               # Dependências do painel
-└── README.md                  # Este arquivo
+Técnico: "!listpeças 123"
+Bot: 📦 SOLICITAÇÃO DE PEÇAS - OS #123
+     Liste as peças necessárias:
+
+Técnico: "- Cartucho HP 664
+          - Cabo USB"
+Bot: ✅ SOLICITAÇÃO DE PEÇAS CRIADA #456
 ```
 
-## 🔧 Tecnologias Utilizadas
-
-### Bot WhatsApp
-- **@whiskeysockets/baileys** - Conexão WhatsApp
-- **sqlite3** - Banco de dados
-- **winston** - Sistema de logs
-- **openai** - Integração IA (opcional)
-- **qrcode-terminal** - QR Code no terminal
-
-### Painel Web
-- **Next.js 15** - Framework React
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Estilização
-- **Shadcn/ui** - Componentes UI
-- **SQLite3** - Conexão com banco
-
-## 🔐 Segurança e Hierarquia
-
-### Níveis de Acesso
-- **Root** (69981170027, 6884268042): Acesso total
-- **Admin**: Gerenciar técnicos e configurações
-- **Técnico**: Atender chamados e gerenciar OS
-- **Usuário**: Abrir e consultar próprios chamados
-
-### Recursos de Segurança
-- Validação de permissões em todos os comandos
-- Logs detalhados de todas as ações
-- Isolamento de dados por usuário
-- Limpeza automática de dados antigos
-
-## 🔄 Manutenção
-
-### Limpeza Automática
-- OS finalizadas são removidas após 7 dias
-- Logs são rotacionados automaticamente
-- Configurável via arquivo de configuração
-
-### Backup
-```bash
-# Backup do banco de dados
-cp bot-whatsapp/db/atendimento.db backup/
-
-# Backup dos logs
-cp bot-whatsapp/logs/bot.log backup/
-
-# Backup da sessão WhatsApp
-cp -r bot-whatsapp/auth_info_baileys backup/
+6. **Almoxarifado atende:**
+```
+Almoxarifado: "!atender 456"
+Bot: ✅ Solicitação #456 atendida!
+     Técnico notificado: peças disponíveis para retirada
 ```
 
-## 🚨 Solução de Problemas
+7. **Finalização:**
+```
+Técnico: "!finalizado 123"
+Bot: ✅ OS #123 finalizada com sucesso!
+```
 
-### Bot não conecta
-1. Verifique se o QR Code foi escaneado
-2. Confirme se o WhatsApp está ativo no celular
-3. Verifique logs em `bot-whatsapp/logs/bot.log`
+## 🌐 Interface Web
 
-### Painel não carrega dados
-1. Verifique se o banco existe: `bot-whatsapp/db/atendimento.db`
-2. Execute: `cd bot-whatsapp && node init-db.js`
-3. Reinicie o servidor: `npm run dev`
+### Páginas Disponíveis:
+- **`/`** - Dashboard principal com OS
+- **`/parts`** - Gerenciamento de peças (almoxarifado)
+- **`/config`** - Configurações do sistema (admin)
+
+### Credenciais de Acesso:
+- **Usuário**: `root`
+- **Senha**: `admin847523`
+
+## 📊 Comandos Completos
+
+### **Usuários Gerais:**
+- `!ajuda` - Lista de comandos
+- `!status [id]` - Ver status da OS
+- `!cancelar [id]` - Cancelar OS
+- `!dados` - Adicionar dados da máquina
+
+### **Técnicos:**
+- `!menu` - Menu técnico
+- `!atendendo [id]` - Assumir OS
+- `!prioridade [id]` - Marcar como prioritário
+- `!setor [id]=[setor]` - Alterar setor
+- `!mensagem [id]=[texto]` - Enviar mensagem
+- `!list` - Listar OS abertas
+- `!finalizado [id]` - Finalizar OS
+- `!listpeças [id]` - Solicitar peças
+- `!adm` - Chamar administrador
+
+### **Almoxarifado:**
+- `!pecas` - Ver solicitações de peças
+- `!atender [id]` - Atender solicitação
+
+### **Administradores:**
+- `!config` - Menu de configurações
+- `!listtc` - Listar técnicos
+- `!listadm` - Listar administradores
+- `!tecnico=[num]` - Promover a técnico
+- `!admin=[num]` - Promover a administrador
+- `!almoxarifado=[num]` - Promover a almoxarifado
+- `!ping` - Status do sistema
+- `!historico` - Ver histórico
+
+### **Sistema (Root):**
+- `!user [username] [password]` - Criar usuário web
+- `!grafico` - Estatísticas detalhadas
+- `!backup` - Criar backup manual
+- `!sistema` - Informações do sistema
+
+## 🗄️ Estrutura do Banco
+
+### Tabelas Principais:
+- `usuarios` - Usuários do sistema
+- `ordens_servico` - Ordens de serviço
+- `historico_mensagens` - Histórico de conversas
+- `solicitacoes_pecas` - Solicitações de peças
+- `system_users` - Usuários da interface web
+- `system_config` - Configurações do sistema
+- `backups` - Registro de backups
+
+## 📚 Documentação Adicional
+
+- **[Integração Ollama](./README_OLLAMA_INTEGRATION.md)** ⭐ **NOVO** - Guia completo da IA local
+- **[Sistema de Peças](./README_PARTS_SYSTEM.md)** - Documentação detalhada do sistema de peças
+
+## 🔧 Troubleshooting
+
+### IA não funciona (Ollama)
+1. **Verificar se Ollama está rodando**: `ollama serve`
+2. **Testar conexão**: `curl http://localhost:11434/api/tags`
+3. **Verificar modelo**: `ollama list`
+4. **Baixar modelo**: `ollama pull llama3.2:3b`
+
+### Bot não conecta ao WhatsApp
+1. Verificar se o QR Code foi escaneado
+2. Verificar conexão com internet
+3. Limpar pasta `auth_info_baileys` e reconectar
 
 ### Comandos não funcionam
-1. Verifique permissões do usuário
-2. Confirme sintaxe do comando
-3. Consulte logs para erros
+1. Verificar se o usuário tem permissão
+2. Verificar sintaxe do comando
+3. Consultar logs em `./logs/bot.log`
+
+### Interface web não carrega
+1. Verificar se Next.js está rodando (`npm run dev`)
+2. Verificar porta 3000 disponível
+3. Verificar se banco de dados existe
+
+### Grupo técnico não recebe notificações
+1. Verificar ID do grupo nas configurações
+2. Verificar se bot está no grupo
+3. Verificar permissões do bot no grupo
+
+## 🚀 Recursos Avançados
+
+### Backup Automático
+- Backup a cada 24 horas
+- Limpeza automática de backups antigos
+- Exportação de OS individuais
+
+### Estatísticas Avançadas
+- Gráficos de performance
+- Métricas de atendimento
+- Relatórios de peças
+
+### Segurança
+- Dados locais (Ollama)
+- Autenticação web
+- Logs detalhados
+- Controle de permissões
+
+## 📈 Performance
+
+### Recursos Recomendados:
+- **RAM**: 8GB+ (16GB recomendado para IA)
+- **CPU**: 4+ cores
+- **Armazenamento**: 10GB+ livre
+- **Rede**: Conexão estável para WhatsApp
+
+### Otimizações:
+- Usar modelos Ollama menores para melhor performance
+- Configurar limpeza automática adequada
+- Monitorar uso de recursos
+
+## 🔐 Segurança e Privacidade
+
+### Vantagens do Ollama:
+- **Dados locais**: Nenhuma informação enviada para terceiros
+- **Privacidade**: Conversas permanecem no servidor
+- **Controle total**: Sem dependência de APIs externas
+- **Gratuito**: Sem custos de API
+
+### Configurações de Segurança:
+- Autenticação obrigatória na interface web
+- Controle de permissões por papel de usuário
+- Logs detalhados de todas as ações
+- Backup automático para recuperação
 
 ## 📞 Suporte
 
-- **Números Root**: 69981170027, 6884268042
-- **Bot**: 69981248816
-- **Logs**: `bot-whatsapp/logs/bot.log`
-- **Painel**: http://localhost:8000
+### Configuração Padrão:
+- **Grupo Técnico**: https://chat.whatsapp.com/H6Mb8FQAnhaJhY5RdyIKjP
+- **Usuário Root**: 5569981170027
+- **Interface Web**: http://localhost:3000
 
-## 🎉 Status do Projeto
-
-✅ **COMPLETO E FUNCIONAL**
-
-- ✅ Bot WhatsApp totalmente operacional
-- ✅ Painel administrativo web funcionando
-- ✅ Banco de dados com dados de exemplo
-- ✅ API REST completa
-- ✅ Sistema de comandos implementado
-- ✅ Hierarquia de usuários funcionando
-- ✅ Logs e monitoramento ativos
-- ✅ Documentação completa
-
-**O sistema está pronto para uso em produção!**
+### Em caso de problemas:
+1. Verificar logs em `./logs/bot.log`
+2. Consultar documentação específica
+3. Verificar status de todos os serviços
+4. Reiniciar serviços se necessário
 
 ---
 
-**Desenvolvido com ❤️ para otimizar o atendimento técnico via WhatsApp**
+**Sistema desenvolvido para atendimento técnico eficiente com IA local e total privacidade dos dados.**

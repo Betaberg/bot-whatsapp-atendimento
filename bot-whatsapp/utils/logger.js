@@ -110,14 +110,23 @@ const botLogger = {
   },
 
   // Log de backup
-  backup: (success, details = '') => {
-    const status = success ? 'SUCCESS' : 'FAILED';
-    logger.info(`Backup ${status}: ${details}`);
+  backup: (backupName, sizeMB, type) => {
+    logger.info(`Backup Created - Type: ${type.toUpperCase()}, File: ${backupName}, Size: ${sizeMB} MB`);
+  },
+
+  // Log de exportação
+  export: (fileName, sizeMB, type) => {
+    logger.info(`Export Created - Type: ${type.toUpperCase()}, File: ${fileName}, Size: ${sizeMB} MB`);
   },
 
   // Log de configurações
   configChanged: (key, oldValue, newValue, user) => {
     logger.info(`Config Changed - Key: ${key}, Old: ${oldValue}, New: ${newValue}, By: ${user}`);
+  },
+
+  // Log de sistema
+  systemInfo: (info) => {
+    logger.info(`System Info - Memory: ${info.memory}MB, Uptime: ${info.uptime}h, DB Size: ${info.dbSize}MB`);
   }
 };
 

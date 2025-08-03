@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Package, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 interface OrdemServico {
   id: number;
@@ -179,12 +181,30 @@ export default function AdminPanel() {
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Painel de Atendimento WhatsApp
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Gerencie ordens de serviço e acompanhe o atendimento técnico
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Painel de Atendimento WhatsApp
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Gerencie ordens de serviço e acompanhe o atendimento técnico
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/config">
+                  <Button variant="outline">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurações
+                  </Button>
+                </Link>
+                <Link href="/parts">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Package className="w-4 h-4 mr-2" />
+                    Gerenciar Peças
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

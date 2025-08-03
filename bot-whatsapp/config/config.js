@@ -1,17 +1,18 @@
 require('dotenv').config();
 
 const config = {
-  // Configurações da API OpenAI
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
-    model: 'gpt-3.5-turbo'
+  // Configurações da API Ollama
+  ollama: {
+    baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    model: process.env.OLLAMA_MODEL || 'llama3.2:3b'
   },
 
   // Configurações do WhatsApp
   whatsapp: {
-    botNumber: process.env.BOT_NUMBER || '69981248816',
-    rootNumbers: process.env.ROOT_NUMBERS ? process.env.ROOT_NUMBERS.split(',') : ['69981170027', '6884268042'],
-    sessionPath: './auth_info_baileys'
+    botNumber: process.env.BOT_NUMBER || '5569981248816',
+    rootNumbers: process.env.ROOT_NUMBERS ? process.env.ROOT_NUMBERS.split(',') : ['5569981170027', '556884268042'],
+    sessionPath: './auth_info_baileys',
+    grupoTecnico: 'H6Mb8FQAnhaJhY5RdyIKjP@g.us' // ID do grupo técnico
   },
 
   // Configurações do banco de dados
@@ -27,7 +28,7 @@ const config = {
 
   // Mensagens padrão
   messages: {
-    saudacao: process.env.MENSAGEM_SAUDACAO || 'Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?',
+    saudacao: process.env.MENSAGEM_SAUDACAO || 'Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?\n\nPara abrir um chamado, use o comando !Abrir ou simplesmente descreva seu problema.',
     final: process.env.MENSAGEM_FINAL || 'Atendimento finalizado. Obrigado por utilizar nossos serviços!',
     ajuda: `
 🤖 *COMANDOS DISPONÍVEIS*
@@ -36,7 +37,7 @@ const config = {
 • !ajuda - Lista de comandos
 • !status [id] - Ver status da OS
 • !cancelar [id] - Cancelar OS
-• !dados - Adicionar dados da máquina
+• !Abrir - Abrir um novo chamado
 
 *TÉCNICOS:*
 • !menu - Exibir comandos técnicos
@@ -57,7 +58,13 @@ const config = {
 • !ping - Tempo de resposta
 • !tecnico=[num] - Tornar técnico
 • !adm=[num] - Tornar administrador
+• !almoxarifado=[num] - Tornar almoxarifado
 • !historico - Ver histórico de OS
+
+*PEÇAS:*
+• !listpeças [id_os] - Solicitar peças para OS
+• !pecas - Ver solicitações de peças (almoxarifado)
+• !atender [id_solicitacao] - Atender solicitação (almoxarifado)
     `
   },
 
@@ -66,6 +73,7 @@ const config = {
     ROOT: 'root',
     ADMIN: 'admin',
     TECNICO: 'tecnico',
+    ALMOXARIFADO: 'almoxarifado',
     USER: 'user'
   },
 
@@ -77,9 +85,34 @@ const config = {
     CANCELADA: 'cancelada'
   },
 
+  // Status das solicitações de peças
+  partsStatus: {
+    PENDENTE: 'pendente',
+    EM_SEPARACAO: 'em_separacao',
+    ATENDIDA: 'atendida',
+    CANCELADA: 'cancelada'
+  },
+
   // Configurações de limpeza automática
   cleanup: {
-    daysToKeep: 7 // Dias para manter OS no histórico
+    daysToKeep: 365 // Dias para manter OS no histórico (1 ano)
+  },
+
+  // Configurações do sistema
+  system: {
+    maxMemoryUsage: '512MB',
+    storageLimit: '2GB',
+    backupPath: './backups',
+    exportPath: './exports',
+    backupInterval: 24, // horas
+    enableAutoBackup: true
+  },
+
+  // Configurações de autenticação
+  auth: {
+    rootUser: '5569981170027',
+    defaultPassword: 'admin847523',
+    sessionTimeout: 3600000 // 1 hora em ms
   }
 };
 

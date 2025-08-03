@@ -8,6 +8,8 @@ const config = require('./config/config');
 const database = require('./db/database');
 const commandHandler = require('./handlers/commands');
 const { botLogger } = require('./utils/logger');
+const backupManager = require('./utils/backup');
+const { ensureOllamaRunning } = require('./utils/ollama-fix');
 
 class WhatsAppBot {
   constructor() {
@@ -22,6 +24,9 @@ class WhatsAppBot {
     
     // Inicializar limpeza automática
     this.setupCleanupSchedule();
+    
+    // Inicializar sistema de backup
+    this.initializeBackupSystem();
   }
 
   ensureDirectories() {
@@ -191,27 +196,29 @@ class WhatsAppBot {
         // Marcar como lida
         await this.sock.readMessages([message.key]);
 
-        // Processar apenas mensagens privadas ou menções em grupos
-        if (isGroup && !text.includes(`@${config.whatsapp.botNumber}`)) {
-          continue;
+        // Verificar se é o grupo técnico ou mensagem privada
+        const isGrupoTecnico = from === config.whatsapp.grupoTecnico;
+        
+        // Processar mensagens do grupo técnico ou mensagens privadas
+        if (!isGroup || isGrupoTecnico || text.includes(`@${config.whatsapp.botNumber}`)) {
+          // Função para enviar resposta
+          const sendMessage = async (responseText) => {
+            try {
+              await this.sock.sendMessage(from, { text: responseText });
+              botLogger.messageSent(from, responseText);
+            } catch (error) {
+              botLogger.botError(error, 'SEND_MESSAGE');
+            }
+          };
+
+          // Processar comando/mensagem
+          await commandHandler.handleMessage(
+            { body: text },
+            sendMessage,
+            senderPhone,
+            isGrupoTecnico
+          );
         }
-
-        // Função para enviar resposta
-        const sendMessage = async (responseText) => {
-          try {
-            await this.sock.sendMessage(from, { text: responseText });
-            botLogger.messageSent(from, responseText);
-          } catch (error) {
-            botLogger.botError(error, 'SEND_MESSAGE');
-          }
-        };
-
-        // Processar comando/mensagem
-        await commandHandler.handleMessage(
-          { body: text },
-          sendMessage,
-          senderPhone
-        );
       }
     } catch (error) {
       botLogger.botError(error, 'HANDLE_MESSAGES');
@@ -260,13 +267,51 @@ class WhatsAppBot {
   }
 
   async notifyRootUsers(message) {
-    for (const rootNumber of config.whatsapp.rootNumbers) {
-      try {
-        const jid = `${rootNumber}@s.whatsapp.net`;
-        await this.sock.sendMessage(jid, { text: message });
-        botLogger.messageSent(jid, message);
-      } catch (error) {
-        botLogger.botError(error, `NOTIFY_ROOT_${rootNumber}`);
+    // Enviar mensagem primeiro para o root principal (primeiro da lista)
+    const rootNumbers = config.whatsapp.rootNumbers;
+    
+    if (rootNumbers.length === 0) {
+      botLogger.systemInfo('Nenhum número root configurado');
+      return;
+    }
+    
+    // Tentar enviar para o root principal primeiro
+    const primaryRoot = rootNumbers[0];
+    const primaryJid = `${primaryRoot}@s.whatsapp.net`;
+    
+    try {
+      await this.sock.sendMessage(primaryJid, { text: message });
+      botLogger.messageSent(primaryJid, message);
+      console.log(`✅ Mensagem de inicialização enviada para root principal: ${primaryRoot}`);
+    } catch (error) {
+      botLogger.botError(error, `NOTIFY_ROOT_PRIMARY_${primaryRoot}`);
+      console.log(`❌ Falha ao enviar mensagem para root principal: ${primaryRoot}`);
+      
+      // Se falhar, tentar enviar para os roots secundários
+      if (rootNumbers.length > 1) {
+        console.log('🔄 Tentando enviar mensagem para roots secundários...');
+        
+        for (let i = 1; i < rootNumbers.length; i++) {
+          const secondaryRoot = rootNumbers[i];
+          const secondaryJid = `${secondaryRoot}@s.whatsapp.net`;
+          
+          try {
+            await this.sock.sendMessage(secondaryJid, { text: message });
+            botLogger.messageSent(secondaryJid, message);
+            console.log(`✅ Mensagem de inicialização enviada para root secundário: ${secondaryRoot}`);
+            break; // Parar após o primeiro envio bem-sucedido
+          } catch (secondaryError) {
+            botLogger.botError(secondaryError, `NOTIFY_ROOT_SECONDARY_${secondaryRoot}`);
+            console.log(`❌ Falha ao enviar mensagem para root secundário: ${secondaryRoot}`);
+            
+            // Se for o último root e todas as tentativas falharam
+            if (i === rootNumbers.length - 1) {
+              console.log('❌ Falha ao enviar mensagem para todos os roots configurados');
+            }
+          }
+        }
+      } else {
+        console.log('❌ Não há roots secundários configurados para fallback');
       }
     }
   }
@@ -284,6 +329,18 @@ class WhatsAppBot {
         botLogger.botError(error, 'AUTO_CLEANUP');
       }
     }, 24 * 60 * 60 * 1000); // 24 horas
+  }
+
+  initializeBackupSystem() {
+    console.log('🔧 Inicializando sistema de backup...');
+    
+    // O BackupManager já se inicializa automaticamente
+    // Apenas registrar que foi inicializado
+    botLogger.systemInfo({
+      memory: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      uptime: Math.floor(process.uptime() / 3600),
+      dbSize: 'N/A'
+    });
   }
 
   async stop() {
@@ -322,6 +379,21 @@ class WhatsAppBot {
     }
   }
 
+  // Método para obter informações do grupo
+  async getGroupInfo(groupId) {
+    try {
+      if (!this.isConnected) {
+        throw new Error('Bot não está conectado');
+      }
+
+      const groupMetadata = await this.sock.groupMetadata(groupId);
+      return groupMetadata;
+    } catch (error) {
+      botLogger.botError(error, 'GET_GROUP_INFO');
+      return null;
+    }
+  }
+
   // Método para obter status da conexão
   getConnectionStatus() {
     return {
@@ -330,6 +402,52 @@ class WhatsAppBot {
       botNumber: config.whatsapp.botNumber,
       rootNumbers: config.whatsapp.rootNumbers
     };
+  }
+
+  // Método para notificar grupo técnico
+  async notifyTechnicalGroup(message) {
+    try {
+      if (!this.isConnected) {
+        console.log('⚠️ Bot não conectado - mensagem não enviada para grupo técnico');
+        return false;
+      }
+
+      const groupId = config.whatsapp.grupoTecnico;
+      if (!groupId) {
+        console.log('⚠️ ID do grupo técnico não configurado');
+        return false;
+      }
+
+      await this.sock.sendMessage(groupId, { text: message });
+      botLogger.messageSent(groupId, message);
+      return true;
+    } catch (error) {
+      botLogger.botError(error, 'NOTIFY_TECHNICAL_GROUP');
+      console.error('Erro ao notificar grupo técnico:', error);
+      return false;
+    }
+  }
+
+  // Método para criar backup manual
+  async createManualBackup() {
+    try {
+      const result = await backupManager.createBackup('manual');
+      return result;
+    } catch (error) {
+      botLogger.botError(error, 'MANUAL_BACKUP');
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Método para exportar OS
+  async exportOS(osId) {
+    try {
+      const result = await backupManager.exportOSToFile(osId);
+      return result;
+    } catch (error) {
+      botLogger.botError(error, 'EXPORT_OS');
+      return { success: false, error: error.message };
+    }
   }
 }
 
