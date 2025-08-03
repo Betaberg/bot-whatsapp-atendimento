@@ -191,7 +191,7 @@ function insertSampleData() {
   console.log('📝 Inserindo dados de exemplo...');
 
   // Inserir usuários root
-  const rootNumbers = ['69981170027', '6984268042'];
+  const rootNumbers = ['556981170027', '556884268042', '5569981170027'];
   rootNumbers.forEach(numero => {
     db.run(`
       INSERT OR IGNORE INTO usuarios (telefone, nome, role) 

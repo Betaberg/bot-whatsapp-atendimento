@@ -10,7 +10,7 @@ const config = {
   // Configurações do WhatsApp
   whatsapp: {
     botNumber: process.env.BOT_NUMBER || '5569981248816',
-    rootNumbers: process.env.ROOT_NUMBERS ? process.env.ROOT_NUMBERS.split(',') : ['5569981170027', '556884268042'],
+    rootNumbers: process.env.ROOT_NUMBERS ? process.env.ROOT_NUMBERS.split(',') : ['556981170027', '556884268042', '5569981170027'],
     sessionPath: './auth_info_baileys',
     grupoTecnico: 'H6Mb8FQAnhaJhY5RdyIKjP@g.us' // ID do grupo técnico
   },
@@ -26,9 +26,21 @@ const config = {
     file: './logs/bot.log'
   },
 
+  // Configurações de e-mail
+  email: {
+    enabled: process.env.EMAIL_ENABLED !== 'false', // Nova opção para habilitar/desabilitar emails
+    host: process.env.SMTP_HOST || '',
+    port: process.env.SMTP_PORT || 587,
+    secure: process.env.SMTP_SECURE === 'true' || false,
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.EMAIL_FROM || 'bot@empresa.com',
+    adminEmails: process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : []
+  },
+
   // Mensagens padrão
   messages: {
-    saudacao: process.env.MENSAGEM_SAUDACAO || 'Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?\n\nPara abrir um chamado, use o comando !Abrir ou simplesmente descreva seu problema.',
+    saudacao: process.env.MENSAGEM_SAUDACAO || 'Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?\n\nPara abrir um chamado, use o comando !abrir ou simplesmente descreva seu problema.',
     final: process.env.MENSAGEM_FINAL || 'Atendimento finalizado. Obrigado por utilizar nossos serviços!',
     ajuda: `
 🤖 *COMANDOS DISPONÍVEIS*
@@ -37,7 +49,7 @@ const config = {
 • !ajuda - Lista de comandos
 • !status [id] - Ver status da OS
 • !cancelar [id] - Cancelar OS
-• !Abrir - Abrir um novo chamado
+• !abrir - Abrir um novo chamado
 
 *TÉCNICOS:*
 • !menu - Exibir comandos técnicos
@@ -110,7 +122,7 @@ const config = {
 
   // Configurações de autenticação
   auth: {
-    rootUser: '5569981170027',
+    rootUser: '556981170027',
     defaultPassword: 'admin847523',
     sessionTimeout: 3600000 // 1 hora em ms
   }
