@@ -3,6 +3,7 @@ const path = require('path');
 const config = require('../config/config');
 const database = require('../db/database');
 const { botLogger } = require('./logger');
+const { sendAdminNotification, emailTemplates } = require('../config/email');
 
 class BackupManager {
   constructor() {
@@ -58,6 +59,20 @@ class BackupManager {
 
       // Limpar backups antigos
       await this.cleanupOldBackups();
+
+      // Enviar notificação por e-mail
+      if (config.email.adminEmails.length > 0) {
+        try {
+          const emailData = emailTemplates.backupCreated({
+            backupName: backupName,
+            size: fileSizeInMB,
+            type: type
+          });
+          await sendAdminNotification(emailData.subject, emailData.text, emailData.html);
+        } catch (emailError) {
+          console.error('Erro ao enviar notificação de backup por e-mail:', emailError.message);
+        }
+      }
 
       return {
         success: true,

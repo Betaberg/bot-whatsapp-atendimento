@@ -176,6 +176,67 @@ class Database {
     });
   }
 
+  // Métodos para gerenciamento de grupo técnico
+  definirGrupoTecnico(groupId, updatedBy) {
+    return new Promise((resolve, reject) => {
+      this.db.run(`
+        INSERT OR REPLACE INTO system_config (config_key, config_value, description, updated_by, updated_at)
+        VALUES ('grupo_tecnico', ?, 'ID do grupo técnico no WhatsApp', ?, CURRENT_TIMESTAMP)
+      `, [groupId, updatedBy], function(err) {
+        if (err) reject(err);
+        else resolve(this.changes);
+      });
+    });
+  }
+
+  obterGrupoTecnico() {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        'SELECT config_value FROM system_config WHERE config_key = ?',
+        ['grupo_tecnico'],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row ? row.config_value : config.whatsapp.grupoTecnico);
+        }
+      );
+    });
+  }
+
+  // Métodos para parsing de menções do WhatsApp
+  extrairTelefonesDeMencoes(text) {
+    // Regex para capturar menções do WhatsApp no formato @5569xxxxxxxx
+    const mentionRegex = /@(\d{10,15})/g;
+    const telefones = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+      telefones.push(match[1]);
+    }
+    
+    return telefones;
+  }
+
+  // Método para buscar usuário root principal
+  buscarUsuarioRootPrincipal() {
+    return new Promise((resolve, reject) => {
+      // Buscar o primeiro usuário root da lista de números root configurados
+      const rootNumbers = config.whatsapp.rootNumbers;
+      if (rootNumbers.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      this.db.get(
+        'SELECT * FROM usuarios WHERE telefone = ? AND role = ?',
+        [rootNumbers[0], 'root'],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  }
+
   // Métodos para Ordens de Serviço
   criarOS(dados) {
     return new Promise((resolve, reject) => {

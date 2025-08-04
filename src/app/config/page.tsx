@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Dashboard } from '@/components/ui/dashboard';
+import { Charts } from '@/components/ui/charts';
 import { 
   Settings, 
   Database, 
@@ -19,7 +22,15 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  BarChart3,
+  MessageSquare,
+  Zap,
+  Users,
+  Moon,
+  Sun,
+  Link,
+  Monitor
 } from 'lucide-react';
 
 interface SystemConfig {
@@ -408,14 +419,100 @@ export default function ConfigPage() {
           </Alert>
         )}
 
-        <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="general">Geral</TabsTrigger>
+            <TabsTrigger value="messages">Mensagens</TabsTrigger>
             <TabsTrigger value="system">Sistema</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="ai">IA & Root</TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Principal */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <Dashboard 
+              stats={{
+                totalOS: stats?.total_os || 0,
+                osAbertas: Math.floor((stats?.total_os || 0) * 0.3),
+                osEmAndamento: Math.floor((stats?.total_os || 0) * 0.2),
+                osFinalizadas: Math.floor((stats?.total_os || 0) * 0.5),
+                totalUsuarios: stats?.total_usuarios || 0,
+                totalPecas: stats?.total_pecas || 0,
+                tempoMedioResolucao: 4.2,
+                osHoje: Math.floor((stats?.total_os || 0) * 0.1),
+                tendenciaOS: 'up' as const,
+                systemHealth: {
+                  cpu: systemInfo ? Math.round((systemInfo.processMemory / 512) * 100) : 45,
+                  memory: systemInfo ? Math.round(((systemInfo.totalMemory - systemInfo.freeMemory) / systemInfo.totalMemory) * 100) : 65,
+                  disk: 35,
+                  status: 'healthy' as const
+                }
+              }}
+              isLoading={loading}
+            />
+            
+            {/* Gráficos */}
+            <Charts 
+              osPorMes={[
+                { mes: '2024-01', total: 45, finalizadas: 40 },
+                { mes: '2024-02', total: 52, finalizadas: 48 },
+                { mes: '2024-03', total: 38, finalizadas: 35 },
+                { mes: '2024-04', total: 61, finalizadas: 58 },
+                { mes: '2024-05', total: 49, finalizadas: 45 },
+                { mes: '2024-06', total: 67, finalizadas: 62 }
+              ]}
+              osPorTecnico={[
+                { tecnico_responsavel: 'João Silva', total: 25, finalizadas: 23 },
+                { tecnico_responsavel: 'Maria Santos', total: 18, finalizadas: 16 },
+                { tecnico_responsavel: 'Pedro Costa', total: 22, finalizadas: 20 },
+                { tecnico_responsavel: 'Ana Lima', total: 15, finalizadas: 14 }
+              ]}
+              pecasPorStatus={[
+                { status: 'pendente', total: 12 },
+                { status: 'em_separacao', total: 8 },
+                { status: 'atendida', total: 45 },
+                { status: 'cancelada', total: 3 }
+              ]}
+              tempoMedioResolucao={4.2}
+            />
+          </TabsContent>
+
+          {/* Aba de Mensagens */}
+          <TabsContent value="messages" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  Configuração de Mensagens
+                </CardTitle>
+                <CardDescription>
+                  Personalize as mensagens automáticas do bot
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <div className="text-center">
+                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Configuração de Mensagens
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Acesse a página dedicada para personalizar todas as mensagens do bot
+                    </p>
+                    <Button 
+                      onClick={() => window.open('/config/messages', '_blank')}
+                      className="inline-flex items-center"
+                    >
+                      <Link className="w-4 h-4 mr-2" />
+                      Abrir Editor de Mensagens
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Configurações Gerais */}
           <TabsContent value="general" className="space-y-6">

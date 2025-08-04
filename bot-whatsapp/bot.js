@@ -10,6 +10,7 @@ const commandHandler = require('./handlers/commands');
 const { botLogger } = require('./utils/logger');
 const backupManager = require('./utils/backup');
 const { ensureOllamaRunning } = require('./utils/ollama-fix');
+const { sendAdminNotification, emailTemplates } = require('./config/email');
 
 class WhatsAppBot {
   constructor() {
@@ -196,11 +197,47 @@ class WhatsAppBot {
         // Marcar como lida
         await this.sock.readMessages([message.key]);
 
-        // Verificar se é o grupo técnico ou mensagem privada
-        const isGrupoTecnico = from === config.whatsapp.grupoTecnico;
+        // Verificar se é o grupo técnico (buscar do banco de dados)
+        const grupoTecnicoId = await database.obterGrupoTecnico();
+        const isGrupoTecnico = from === grupoTecnicoId;
+        
+        // Verificar se é um grupo regular (não o grupo técnico)
+        const isGrupoRegular = isGroup && !isGrupoTecnico;
+        
+        // Processar respostas automáticas para grupos regulares
+        if (isGrupoRegular) {
+          // Verificar palavras-chave para resposta automática
+          if (text.toLowerCase().includes('oi bot')) {
+            // Extrair nome do remetente se disponível
+            let senderName = senderPhone;
+            if (message.pushName) {
+              senderName = message.pushName;
+            }
+            
+            const responseText = `Olá ${senderName}, sou o bot do grupo!`;
+            try {
+              await this.sock.sendMessage(from, { text: responseText });
+              botLogger.messageSent(from, responseText);
+            } catch (error) {
+              botLogger.botError(error, 'SEND_MESSAGE');
+            }
+            continue; // Não processar outros handlers para esta mensagem
+          }
+          
+          if (text.trim() === '!ajuda') {
+            const responseText = 'Aqui está a lista de comandos disponíveis...';
+            try {
+              await this.sock.sendMessage(from, { text: responseText });
+              botLogger.messageSent(from, responseText);
+            } catch (error) {
+              botLogger.botError(error, 'SEND_MESSAGE');
+            }
+            continue; // Não processar outros handlers para esta mensagem
+          }
+        }
         
         // Processar mensagens do grupo técnico ou mensagens privadas
-        if (!isGroup || isGrupoTecnico || text.includes(`@${config.whatsapp.botNumber}`)) {
+        if (!isGroup || isGrupoTecnico || text.includes(`@${config.whatsapp.botNumber}`) || text.startsWith('!') || text.toLowerCase().startsWith('chamado')) {
           // Função para enviar resposta
           const sendMessage = async (responseText) => {
             try {
@@ -287,6 +324,19 @@ class WhatsAppBot {
       botLogger.botError(error, `NOTIFY_ROOT_PRIMARY_${primaryRoot}`);
       console.log(`❌ Falha ao enviar mensagem para root principal: ${primaryRoot}`);
       
+      // Enviar notificação por e-mail sobre falha no envio WhatsApp
+      if (config.email.adminEmails.length > 0) {
+        const emailSubject = 'Falha na Notificação do Bot WhatsApp';
+        const emailText = `Falha ao enviar mensagem de inicialização para o root principal (${primaryRoot}). 
+Tentando enviar para roots secundários.
+        
+Mensagem: ${message}
+        
+Data: ${new Date().toLocaleString('pt-BR')}`;
+        
+        await sendAdminNotification(emailSubject, emailText);
+      }
+      
       // Se falhar, tentar enviar para os roots secundários
       if (rootNumbers.length > 1) {
         console.log('🔄 Tentando enviar mensagem para roots secundários...');
@@ -307,6 +357,19 @@ class WhatsAppBot {
             // Se for o último root e todas as tentativas falharam
             if (i === rootNumbers.length - 1) {
               console.log('❌ Falha ao enviar mensagem para todos os roots configurados');
+              
+              // Enviar notificação por e-mail sobre falha total
+              if (config.email.adminEmails.length > 0) {
+                const emailSubject = 'Falha Total na Notificação do Bot WhatsApp';
+                const emailText = `Falha ao enviar mensagem de inicialização para todos os roots configurados.
+                
+Mensagem: ${message}
+Roots: ${rootNumbers.join(', ')}
+                
+Data: ${new Date().toLocaleString('pt-BR')}`;
+                
+                await sendAdminNotification(emailSubject, emailText);
+              }
             }
           }
         }
@@ -412,7 +475,10 @@ class WhatsAppBot {
         return false;
       }
 
-      const groupId = config.whatsapp.grupoTecnico;
+      // Buscar grupo técnico do banco de dados
+      const database = require('./db/database');
+      const groupId = await database.obterGrupoTecnico();
+      
       if (!groupId) {
         console.log('⚠️ ID do grupo técnico não configurado');
         return false;

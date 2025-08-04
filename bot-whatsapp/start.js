@@ -28,11 +28,20 @@ LOG_LEVEL=info
 # Mensagens padrão
 MENSAGEM_SAUDACAO=Olá! Sou o assistente técnico. Como posso ajudá-lo hoje?
 MENSAGEM_FINAL=Atendimento finalizado. Obrigado por utilizar nossos serviços!
+
+# Configurações de e-mail (opcional)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_SECURE=false
+# SMTP_USER=seu_email@gmail.com
+# SMTP_PASS=sua_senha
+# EMAIL_FROM=bot@empresa.com
+# ADMIN_EMAILS=admin1@empresa.com,admin2@empresa.com
 `;
 
   fs.writeFileSync(envPath, defaultEnv);
   console.log('✅ Arquivo .env criado com sucesso!');
-  console.log('📝 Edite o arquivo .env para configurar sua chave da OpenAI\n');
+  console.log('📝 Edite o arquivo .env para configurar suas credenciais\n');
 }
 
 // Verificar se os diretórios necessários existem

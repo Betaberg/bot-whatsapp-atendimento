@@ -1,6 +1,7 @@
 const database = require('../db/database');
 const config = require('../config/config');
 const { OllamaClient: ollamaClient } = require('../utils/ollama-fix');
+const { sendAdminNotification, emailTemplates } = require('../config/email');
 
 class CommandHandler {
   constructor() {
@@ -25,6 +26,15 @@ class CommandHandler {
         user = await database.buscarUsuario(userPhone);
       }
 
+      // Verificar se o usuário tem acesso root temporário
+      if (user.temporaryRootExpires && new Date() < new Date(user.temporaryRootExpires)) {
+        user.role = 'root';
+      } else if (user.temporaryRootExpires) {
+        // Expirar o acesso root temporário
+        await database.removerAcessoRootTemporario(userPhone);
+        user.role = await database.buscarUsuario(userPhone).role;
+      }
+
       // Se o usuário está fornecendo dados para uma OS ou peças
       if (this.awaitingData.has(userPhone)) {
         return await this.handleDataInput(text, sendMessage, userPhone);
@@ -33,6 +43,13 @@ class CommandHandler {
       // Processar comandos
       if (text.startsWith('!')) {
         return await this.processCommand(text, sendMessage, userPhone, user, isGrupoTecnico);
+      }
+
+      // Verificar se a mensagem começa com "chamado" para abrir automaticamente
+      if (text.toLowerCase().startsWith('chamado')) {
+        // Extrair o conteúdo após "chamado" para usar como descrição do problema
+        const problema = text.substring(7).trim() || 'Chamado aberto automaticamente';
+        return await this.createOrderFromProblem(problema, sendMessage, userPhone, user);
       }
 
       // Se não é um comando e não é do grupo técnico, processar com IA
@@ -51,6 +68,11 @@ class CommandHandler {
     const command = parts[0].toLowerCase();
     const args = parts.slice(1);
 
+    // Verificação adicional para o comando !abrir
+    if (command === '!abrir' || command === '!Abrir') {
+      return await this.handleDados(sendMessage, userPhone, args);
+    }
+
     const userRole = user?.role || 'user';
 
     switch (command) {
@@ -64,7 +86,7 @@ class CommandHandler {
       case '!cancelar':
         return await this.handleCancelar(args, sendMessage, userPhone);
       
-      case '!Abrir':
+      case '!abrir':
         return await this.handleDados(sendMessage, userPhone, args);
 
       // Comandos de técnicos
@@ -158,7 +180,11 @@ class CommandHandler {
 
       // Comando para promover usuário a root
       case '!root':
-        return await this.handlePromoverRoot(text, sendMessage, userRole, userPhone);
+        return await this.handleMencionarRoot(sendMessage, userRole);
+
+      // Comando para definir grupo técnico
+      case '!tcgrupo':
+        return await this.handleDefinirGrupoTecnico(sendMessage, userPhone, userRole, isGrupoTecnico);
 
       default:
         await sendMessage('❓ Comando não reconhecido. Digite !ajuda para ver os comandos disponíveis.');
@@ -177,9 +203,9 @@ class CommandHandler {
 • !ajuda - Lista de comandos
 • !status [id] - Ver status da OS
 • !cancelar [id] - Cancelar OS
-• !Abrir - Abrir um novo chamado
+• !abrir - Abrir um novo chamado
 
-Para abrir um chamado, use !Abrir ou apenas descreva seu problema!
+Para abrir um chamado, use !abrir, digite "chamado [descrição]" ou apenas descreva seu problema!
       `;
     }
     
@@ -444,7 +470,7 @@ Por favor, forneça as seguintes informações:
 🔍 Análise: ${analiseIA.analise}
 
 💡 *Próximos passos:*
-• Use !Abrir para adicionar mais informações
+• Use !abrir para adicionar mais informações
 • Use !status ${osId} para consultar o andamento
 • Nossa equipe técnica foi notificada
       `;
@@ -466,6 +492,20 @@ Por favor, forneça as seguintes informações:
 
 📅 Criado em: ${new Date().toLocaleString('pt-BR')}
       `);
+
+      // Enviar notificação por e-mail para administradores
+      if (config.email.adminEmails.length > 0) {
+        try {
+          // Buscar OS completa do banco
+          const osCompleta = await database.buscarOS(osId);
+          
+          // Enviar notificação por e-mail
+          const emailData = emailTemplates.newOrder(osCompleta);
+          await sendAdminNotification(emailData.subject, emailData.text, emailData.html);
+        } catch (emailError) {
+          console.error('Erro ao enviar notificação por e-mail:', emailError);
+        }
+      }
 
       return { osId, created: true };
 
@@ -606,6 +646,20 @@ Seu chamado foi registrado e será atendido em breve!`;
 💻 Equipamento: ${userData.equipamento}
 ${userData.anydesk ? `🖥️ AnyDesk: ${userData.anydesk}\n` : ''}📝 Problema: ${userData.problema}
 📅 Criado em: ${new Date().toLocaleString('pt-BR')}`);
+        
+        // Enviar notificação por e-mail para administradores
+        if (config.email.adminEmails.length > 0) {
+          try {
+            // Buscar OS completa do banco
+            const osCompleta = await database.buscarOS(osId);
+            
+            // Enviar notificação por e-mail
+            const emailData = emailTemplates.newOrder(osCompleta);
+            await sendAdminNotification(emailData.subject, emailData.text, emailData.html);
+          } catch (emailError) {
+            console.error('Erro ao enviar notificação por e-mail:', emailError);
+          }
+        }
         break;
 
       case 'observacoes':
@@ -861,37 +915,6 @@ Horário: ${new Date().toLocaleString('pt-BR')}
     await sendMessage(response);
   }
 
-  async handlePromoverTecnico(text, sendMessage, userRole) {
-    if (!['admin', 'root'].includes(userRole)) {
-      return await sendMessage('❌ Comando disponível apenas para administradores.');
-    }
-
-    const match = text.match(/!tecnico=(.+)/);
-    if (!match) {
-      return await sendMessage('❌ Use: !tecnico=[número do telefone]');
-    }
-
-    const telefone = match[1].trim();
-    await database.alterarRoleUsuario(telefone, 'tecnico');
-    
-    await sendMessage(`✅ Usuário ${telefone} promovido a técnico.`);
-  }
-
-  async handlePromoverAdmin(text, sendMessage, userRole) {
-    if (!['root'].includes(userRole)) {
-      return await sendMessage('❌ Comando disponível apenas para usuários root.');
-    }
-
-    const match = text.match(/!admin=(.+)/);
-    if (!match) {
-      return await sendMessage('❌ Use: !admin=[número do telefone]');
-    }
-
-    const telefone = match[1].trim();
-    await database.alterarRoleUsuario(telefone, 'admin');
-    
-    await sendMessage(`✅ Usuário ${telefone} promovido a administrador.`);
-  }
 
   async handleHistorico(sendMessage, userRole) {
     if (!['admin', 'root'].includes(userRole)) {
@@ -1114,6 +1137,20 @@ As peças estão disponíveis para retirada no almoxarifado.
 📝 Problema: ${os.problema}
 🔧 Finalizada pelo técnico
     `);
+    
+    // Enviar notificação por e-mail para administradores
+    if (config.email.adminEmails.length > 0) {
+      try {
+        // Buscar OS completa do banco (com dados atualizados)
+        const osCompleta = await database.buscarOS(osId);
+        
+        // Enviar notificação por e-mail
+        const emailData = emailTemplates.orderCompleted(osCompleta);
+        await sendAdminNotification(emailData.subject, emailData.text, emailData.html);
+      } catch (emailError) {
+        console.error('Erro ao enviar notificação de OS finalizada por e-mail:', emailError);
+      }
+    }
   }
 
   async handlePromoverAlmoxarifado(text, sendMessage, userRole) {
@@ -1461,24 +1498,187 @@ Para reativar, use: !iaon`);
     }
   }
 
-  // Comando para promover usuário a root
-  async handlePromoverRoot(text, sendMessage, userRole, userPhone) {
-    // Verificar se foi fornecido o número do telefone
-    const match = text.match(/!root\s+(.+)/);
+  // Comando para mencionar usuário root
+  async handleMencionarRoot(sendMessage, userRole) {
+    try {
+      const rootUser = await database.buscarUsuarioRootPrincipal();
+      
+      if (!rootUser) {
+        return await sendMessage('❌ Nenhum usuário root encontrado no sistema.');
+      }
+
+      const response = `👑 *ROOT DO SISTEMA*
+
+📞 @${rootUser.telefone}
+👤 ${rootUser.nome || 'Root User'}
+📅 Cadastrado em: ${new Date(rootUser.created_at).toLocaleDateString('pt-BR')}
+
+Para contato direto com o administrador principal do sistema.`;
+
+      await sendMessage(response);
+    } catch (error) {
+      console.error('Erro ao buscar usuário root:', error);
+      await sendMessage('❌ Erro ao buscar informações do usuário root.');
+    }
+  }
+
+  // Comando para definir grupo técnico
+  async handleDefinirGrupoTecnico(sendMessage, userPhone, userRole, isGrupoTecnico) {
+    if (!['admin', 'root'].includes(userRole)) {
+      return await sendMessage('❌ Comando disponível apenas para administradores.');
+    }
+
+    if (!isGrupoTecnico) {
+      return await sendMessage('❌ Este comando só pode ser usado em grupos.');
+    }
+
+    try {
+      // Obter o ID do grupo atual (será passado pelo bot.js)
+      const bot = require('../bot');
+      const groupId = await this.getCurrentGroupId(userPhone);
+      
+      if (!groupId) {
+        return await sendMessage('❌ Não foi possível identificar o grupo atual.');
+      }
+
+      // Definir este grupo como grupo técnico
+      await database.definirGrupoTecnico(groupId, userPhone);
+
+      const response = `✅ *GRUPO TÉCNICO DEFINIDO*
+
+🏢 Este grupo foi configurado como o grupo técnico oficial.
+
+📋 *Funcionalidades ativadas:*
+• Recebimento de notificações de novas OS
+• Comandos técnicos e administrativos
+• Solicitações de peças
+• Atualizações de status
+
+👥 *Comandos disponíveis:*
+• !adm @usuario - Promover a administrador
+• !tecnico @usuario - Promover a técnico  
+• !almoxarifado @usuario - Promover a almoxarifado
+• !root - Mencionar root do sistema
+
+📅 Configurado em: ${new Date().toLocaleString('pt-BR')}
+👤 Por: ${userPhone}`;
+
+      await sendMessage(response);
+
+      // Notificar usuários root sobre a mudança
+      const rootUsers = await database.listarUsuariosPorRole('root');
+      for (const root of rootUsers) {
+        if (root.telefone !== userPhone) {
+          const rootJid = `${root.telefone}@s.whatsapp.net`;
+          await this.sendDirectMessage(rootJid, `
+🔄 *GRUPO TÉCNICO ALTERADO*
+
+O grupo técnico foi redefinido por ${userPhone}.
+Novo grupo: ${groupId}
+Data: ${new Date().toLocaleString('pt-BR')}
+          `);
+        }
+      }
+
+    } catch (error) {
+      console.error('Erro ao definir grupo técnico:', error);
+      await sendMessage('❌ Erro ao definir grupo técnico. Tente novamente.');
+    }
+  }
+
+  // Método auxiliar para obter ID do grupo atual
+  async getCurrentGroupId(userPhone) {
+    // Este método será implementado para obter o ID do grupo atual
+    // Por enquanto, retornamos null - será implementado no bot.js
+    return null;
+  }
+
+  // Atualizar métodos de promoção para suportar menções
+  async handlePromoverTecnico(text, sendMessage, userRole) {
+    if (!['admin', 'root'].includes(userRole)) {
+      return await sendMessage('❌ Comando disponível apenas para administradores.');
+    }
+
+    // Verificar se há menções na mensagem
+    const telefonesMencionados = database.extrairTelefonesDeMencoes(text);
+    
+    if (telefonesMencionados.length > 0) {
+      // Usar o primeiro telefone mencionado
+      const telefone = telefonesMencionados[0];
+      await database.alterarRoleUsuario(telefone, 'tecnico');
+      
+      await sendMessage(`✅ Usuário @${telefone} promovido a técnico.`);
+      return;
+    }
+
+    // Fallback para o formato antigo
+    const match = text.match(/!tecnico=(.+)/);
     if (!match) {
-      // Se não foi fornecido número, pedir login e senha para autenticação
-      this.awaitingData.set(userPhone, { step: 'login' });
-      return await sendMessage(`🔐 *AUTENTICAÇÃO REQUERIDA*
-
-Para promover um usuário a root, forneça as credenciais de acesso à interface web:
-
-👤 Login:`);
+      return await sendMessage('❌ Use: !tecnico @usuario ou !tecnico=[número do telefone]');
     }
 
     const telefone = match[1].trim();
-    await database.alterarRoleUsuario(telefone, 'root');
+    await database.alterarRoleUsuario(telefone, 'tecnico');
     
-    await sendMessage(`✅ Usuário ${telefone} promovido a root.`);
+    await sendMessage(`✅ Usuário ${telefone} promovido a técnico.`);
+  }
+
+  async handlePromoverAdmin(text, sendMessage, userRole) {
+    if (!['root'].includes(userRole)) {
+      return await sendMessage('❌ Comando disponível apenas para usuários root.');
+    }
+
+    // Verificar se há menções na mensagem
+    const telefonesMencionados = database.extrairTelefonesDeMencoes(text);
+    
+    if (telefonesMencionados.length > 0) {
+      // Usar o primeiro telefone mencionado
+      const telefone = telefonesMencionados[0];
+      await database.alterarRoleUsuario(telefone, 'admin');
+      
+      await sendMessage(`✅ Usuário @${telefone} promovido a administrador.`);
+      return;
+    }
+
+    // Fallback para o formato antigo
+    const match = text.match(/!admin=(.+)/);
+    if (!match) {
+      return await sendMessage('❌ Use: !admin @usuario ou !admin=[número do telefone]');
+    }
+
+    const telefone = match[1].trim();
+    await database.alterarRoleUsuario(telefone, 'admin');
+    
+    await sendMessage(`✅ Usuário ${telefone} promovido a administrador.`);
+  }
+
+  async handlePromoverAlmoxarifado(text, sendMessage, userRole) {
+    if (!['admin', 'root'].includes(userRole)) {
+      return await sendMessage('❌ Comando disponível apenas para administradores.');
+    }
+
+    // Verificar se há menções na mensagem
+    const telefonesMencionados = database.extrairTelefonesDeMencoes(text);
+    
+    if (telefonesMencionados.length > 0) {
+      // Usar o primeiro telefone mencionado
+      const telefone = telefonesMencionados[0];
+      await database.alterarRoleUsuario(telefone, 'almoxarifado');
+      
+      await sendMessage(`✅ Usuário @${telefone} promovido a almoxarifado.`);
+      return;
+    }
+
+    // Fallback para o formato antigo
+    const match = text.match(/!almoxarifado=(.+)/);
+    if (!match) {
+      return await sendMessage('❌ Use: !almoxarifado @usuario ou !almoxarifado=[número do telefone]');
+    }
+
+    const telefone = match[1].trim();
+    await database.alterarRoleUsuario(telefone, 'almoxarifado');
+    
+    await sendMessage(`✅ Usuário ${telefone} promovido a almoxarifado.`);
   }
 }
 
